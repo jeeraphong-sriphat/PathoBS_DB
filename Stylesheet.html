@@ -1,0 +1,339 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #F4F6F5;
+    --surface: #FFFFFF;
+    --ink: #16241F;
+    --ink-soft: #52645D;
+    --border: #DCE4E0;
+    --primary: #1F6F63;
+    --primary-dark: #164F46;
+    --primary-tint: #E6F0EE;
+    --amber: #B4740E;
+    --amber-tint: #FBF0DC;
+    --green: #2E7D5B;
+    --green-tint: #E4F3EB;
+    --slate: #5B6B76;
+    --slate-tint: #EAEEF0;
+    --danger: #B3432E;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(22, 36, 31, 0.06), 0 4px 12px rgba(22, 36, 31, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .app-shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---- Side nav (workflow steps) ---- */
+  .side-nav {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .brand {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--primary-dark);
+    padding: 0 12px 20px;
+    line-height: 1.35;
+  }
+
+  .brand small {
+    display: block;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 8px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+  }
+
+  .nav-item .num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--slate-tint);
+    color: var(--slate);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .nav-item.active {
+    background: var(--primary-tint);
+    color: var(--primary-dark);
+  }
+
+  .nav-item.active .num {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .nav-item:hover:not(.active) { background: var(--bg); }
+
+  /* ---- Main content ---- */
+  .main {
+    flex: 1;
+    padding: 32px 40px;
+    max-width: 880px;
+  }
+
+  .page-title {
+    font-size: 21px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .page-subtitle {
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .field-grid.single { grid-template-columns: 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  .other-input { margin-top: 8px; }
+
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  label .req { color: var(--danger); }
+
+  input[type="text"], input[type="date"], select, textarea {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px var(--primary-tint);
+  }
+
+  textarea { resize: vertical; min-height: 64px; }
+
+  .btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: var(--slate-tint); color: var(--slate); cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+  }
+  .btn-ghost:hover { background: var(--bg); }
+
+  .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ---- Search ---- */
+  .search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .search-row input { flex: 1; }
+
+  .result-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .result-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .result-item:hover { border-color: var(--primary); background: var(--primary-tint); }
+  .result-item.selected { border-color: var(--primary); background: var(--primary-tint); }
+
+  .result-main { font-weight: 600; font-size: 14px; }
+  .result-sub { color: var(--ink-soft); font-size: 13px; margin-top: 2px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  /* ---- Status pill ---- */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill-pending { background: var(--amber-tint); color: var(--amber); }
+  .pill-received { background: var(--slate-tint); color: var(--slate); }
+  .pill-dispensed { background: var(--green-tint); color: var(--green); }
+
+  /* ---- Signature pad ---- */
+  .sig-wrap {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    position: relative;
+  }
+  #sigCanvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+  .sig-hint {
+    position: absolute; top: 8px; left: 12px;
+    font-size: 12px; color: var(--slate); pointer-events: none;
+  }
+
+  /* ---- Dashboard ---- */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat-num { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .stat-label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  .stat-card.pending .stat-num { color: var(--amber); }
+  .stat-card.received .stat-num { color: var(--slate); }
+  .stat-card.dispensed .stat-num { color: var(--green); }
+
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .filter-row input, .filter-row select { min-width: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th { color: var(--ink-soft); font-weight: 600; font-size: 12.5px; }
+  tbody tr:hover { background: var(--bg); }
+  .table-wrap { overflow-x: auto; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--danger); }
+
+  .record-badge {
+    font-size: 12px;
+    color: var(--primary-dark);
+    background: var(--primary-tint);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 720px) {
+    .app-shell { flex-direction: column; }
+    .side-nav { width: 100%; flex-direction: row; overflow-x: auto; padding: 12px; }
+    .brand { display: none; }
+    .main { padding: 20px; }
+    .field-grid { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>

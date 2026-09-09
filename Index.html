@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('Stylesheet'); ?>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ============ SIDE NAV ============ -->
+    <nav class="side-nav">
+      <div class="brand">บันทึกการขอตัวอย่าง<small>Specimen Request Log</small></div>
+
+      <button class="nav-item active" data-page="step1">
+        <span class="num">1</span> บันทึกคำขอ
+      </button>
+      <button class="nav-item" data-page="step2">
+        <span class="num">2</span> รับตัวอย่าง
+      </button>
+      <button class="nav-item" data-page="step3">
+        <span class="num">3</span> จำหน่ายออก
+      </button>
+      <button class="nav-item" data-page="dashboard">
+        <span class="num">≡</span> Dashboard
+      </button>
+    </nav>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main">
+
+      <!-- ---------- STEP 1 ---------- -->
+      <section id="page-step1" class="page">
+        <h1 class="page-title">ขั้นตอนที่ 1 — บันทึกคำขอตัวอย่าง</h1>
+        <p class="page-subtitle">กรอกข้อมูลคำขอเมื่อเริ่มบันทึกรายการใหม่</p>
+
+        <div class="card">
+          <div class="field-grid">
+            <div class="field">
+              <label>หน่วยงานที่ขอ</label>
+              <select id="s1-dept"><option value="">— เลือก —</option></select>
+              <input type="text" id="s1-dept-other" class="hidden other-input" placeholder="ระบุหน่วยงานที่ขอ">
+            </div>
+            <div class="field">
+              <label>ห้องปฏิบัติการพยาธิฯ ที่ต้องขอตัวอย่าง <span class="req">*</span></label>
+              <select id="s1-lab"><option value="">— เลือก —</option></select>
+              <input type="text" id="s1-lab-other" class="hidden other-input" placeholder="ระบุห้องปฏิบัติการ">
+            </div>
+            <div class="field">
+              <label>ผู้บันทึก <span class="req">*</span></label>
+              <select id="s1-recorder"><option value="">— เลือก —</option></select>
+              <input type="text" id="s1-recorder-other" class="hidden other-input" placeholder="ระบุชื่อผู้บันทึก">
+            </div>
+            <div class="field">
+              <label>ชื่อ-สกุลผู้ป่วย <span class="req">*</span></label>
+              <input type="text" id="s1-name" placeholder="ชื่อ-นามสกุล">
+            </div>
+            <div class="field">
+              <label>HN <span class="req">*</span></label>
+              <input type="text" id="s1-hn" placeholder="เลข HN">
+            </div>
+            <div class="field full">
+              <label>รายการตัวอย่าง <span class="req">*</span></label>
+              <textarea id="s1-specimen" placeholder="เช่น Paraffin block เลขที่ ... จำนวน ... ก้อน"></textarea>
+            </div>
+            <div class="field">
+              <label>เพื่อนำส่ง</label>
+              <input type="text" id="s1-purpose" placeholder="เช่น ส่งตรวจเพิ่มเติม รพ. ...">
+            </div>
+            <div class="field">
+              <label>หมายเหตุ</label>
+              <input type="text" id="s1-notes" placeholder="ถ้ามี">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="s1-clear">ล้างฟอร์ม</button>
+            <button class="btn btn-primary" id="s1-submit">บันทึกคำขอ</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- STEP 2 ---------- -->
+      <section id="page-step2" class="page hidden">
+        <h1 class="page-title">ขั้นตอนที่ 2 — รับตัวอย่าง</h1>
+        <p class="page-subtitle">ค้นหารายการที่ "รอรับตัวอย่าง" ด้วย HN หรือชื่อผู้ป่วย</p>
+
+        <div class="card">
+          <div class="search-row">
+            <input type="text" id="s2-search" placeholder="ค้นหาด้วย HN หรือชื่อ-สกุล">
+            <button class="btn btn-primary" id="s2-searchBtn">ค้นหา</button>
+          </div>
+          <div class="result-list" id="s2-results"></div>
+        </div>
+
+        <div class="card hidden" id="s2-form">
+          <div class="record-badge" id="s2-selectedBadge"></div>
+          <div class="field-grid" style="margin-top:14px;">
+            <div class="field">
+              <label>วันที่รับตัวอย่าง</label>
+              <input type="text" id="s2-date" disabled>
+            </div>
+            <div class="field">
+              <label>ผู้รับตัวอย่าง <span class="req">*</span></label>
+              <input type="text" id="s2-receiver" placeholder="ชื่อผู้รับ">
+            </div>
+            <div class="field full">
+              <label>การดำเนินการ</label>
+              <textarea id="s2-action" placeholder="เช่น ตรวจสอบสภาพตัวอย่าง / นำเข้าห้องเก็บ"></textarea>
+            </div>
+            <div class="field full">
+              <label>หมายเหตุเพิ่มเติม</label>
+              <input type="text" id="s2-notes" placeholder="ถ้ามี">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="s2-cancel">ยกเลิก</button>
+            <button class="btn btn-primary" id="s2-submit">บันทึกการรับตัวอย่าง</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- STEP 3 ---------- -->
+      <section id="page-step3" class="page hidden">
+        <h1 class="page-title">ขั้นตอนที่ 3 — จำหน่ายออก</h1>
+        <p class="page-subtitle">ค้นหารายการที่ "รับตัวอย่างแล้ว" ด้วย HN หรือชื่อผู้ป่วย</p>
+
+        <div class="card">
+          <div class="search-row">
+            <input type="text" id="s3-search" placeholder="ค้นหาด้วย HN หรือชื่อ-สกุล">
+            <button class="btn btn-primary" id="s3-searchBtn">ค้นหา</button>
+          </div>
+          <div class="result-list" id="s3-results"></div>
+        </div>
+
+        <div class="card hidden" id="s3-form">
+          <div class="record-badge" id="s3-selectedBadge"></div>
+          <div class="field-grid" style="margin-top:14px;">
+            <div class="field">
+              <label>ผู้มารับตัวอย่าง <span class="req">*</span></label>
+              <input type="text" id="s3-pickup" placeholder="ชื่อ-สกุลผู้มารับ">
+            </div>
+            <div class="field">
+              <label>วันที่รับ</label>
+              <input type="text" id="s3-date" disabled>
+            </div>
+            <div class="field">
+              <label>ผู้บันทึก <span class="req">*</span></label>
+              <select id="s3-recorder"><option value="">— เลือก —</option></select>
+              <input type="text" id="s3-recorder-other" class="hidden other-input" placeholder="ระบุชื่อผู้บันทึก">
+            </div>
+            <div class="field full">
+              <label>ลายเซ็นผู้มารับตัวอย่าง <span class="req">*</span></label>
+              <div class="sig-wrap">
+                <span class="sig-hint">ลงลายเซ็นในกรอบนี้</span>
+                <canvas id="sigCanvas"></canvas>
+              </div>
+              <div style="margin-top:6px;">
+                <button class="btn btn-ghost" id="s3-clearSig" type="button">ล้างลายเซ็น</button>
+              </div>
+            </div>
+            <div class="field full">
+              <label>หมายเหตุเพิ่มเติม</label>
+              <input type="text" id="s3-notes" placeholder="ถ้ามี">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" id="s3-cancel">ยกเลิก</button>
+            <button class="btn btn-primary" id="s3-submit">บันทึกการจำหน่ายออก</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- DASHBOARD ---------- -->
+      <section id="page-dashboard" class="page hidden">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">ภาพรวมรายการทั้งหมด</p>
+
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-num" id="d-total">0</div>
+            <div class="stat-label">รายการทั้งหมด</div>
+          </div>
+          <div class="stat-card pending">
+            <div class="stat-num" id="d-pending">0</div>
+            <div class="stat-label">คงค้าง — รอรับตัวอย่าง</div>
+          </div>
+          <div class="stat-card received">
+            <div class="stat-num" id="d-received">0</div>
+            <div class="stat-label">คงค้าง — รอจำหน่ายออก</div>
+          </div>
+          <div class="stat-card dispensed">
+            <div class="stat-num" id="d-dispensed">0</div>
+            <div class="stat-label">จำหน่ายแล้ว</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-row">
+            <input type="text" id="d-keyword" placeholder="ค้นหา HN / ชื่อ / หน่วยงาน" style="flex:1; min-width:180px;">
+            <select id="d-status">
+              <option value="ALL">ทุกสถานะ</option>
+              <option value="รอรับตัวอย่าง">รอรับตัวอย่าง (คงค้าง)</option>
+              <option value="รับตัวอย่างแล้ว">รับตัวอย่างแล้ว (คงค้าง)</option>
+              <option value="จำหน่ายแล้ว">จำหน่ายแล้ว</option>
+            </select>
+            <input type="date" id="d-from">
+            <input type="date" id="d-to">
+            <button class="btn btn-primary" id="d-filterBtn">กรองข้อมูล</button>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>RecordID</th><th>วันที่บันทึก</th><th>หน่วยงาน</th><th>ห้องปฏิบัติการ</th>
+                  <th>ชื่อ-สกุล</th><th>HN</th><th>สถานะ</th><th>อัปเดตล่าสุด</th>
+                </tr>
+              </thead>
+              <tbody id="d-tbody"></tbody>
+            </table>
+          </div>
+          <div class="empty-state hidden" id="d-empty">ไม่พบรายการตามเงื่อนไขที่กำหนด</div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

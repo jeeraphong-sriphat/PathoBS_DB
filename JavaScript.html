@@ -1,0 +1,372 @@
+<script>
+  // ============ NAVIGATION ============
+  var navItems = document.querySelectorAll('.nav-item');
+  var pages = document.querySelectorAll('.page');
+
+  navItems.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = btn.getAttribute('data-page');
+      navItems.forEach(function (b) { b.classList.toggle('active', b === btn); });
+      pages.forEach(function (p) { p.classList.toggle('hidden', p.id !== 'page-' + target); });
+      if (target === 'dashboard') loadDashboard();
+    });
+  });
+
+  function showToast(msg, isError) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(function () { t.className = 'toast'; }, 2600);
+  }
+
+  function todayDisplay() {
+    var d = new Date();
+    function pad(n) { return ('0' + n).slice(-2); }
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  // ============ DROPDOWN + "อื่นๆ" HELPER ============
+  // เติม option ให้ select แล้วเพิ่มตัวเลือก "อื่นๆ (ระบุเอง)" ต่อท้ายเสมอ
+  // เมื่อเลือก "อื่นๆ" จะโชว์ช่องกรอกข้อความคู่กันให้พิมพ์เอง
+  function populateSelectOther(selectEl, options, otherInputEl) {
+    (options || []).forEach(function (opt) {
+      var o = document.createElement('option');
+      o.value = opt; o.textContent = opt;
+      selectEl.appendChild(o);
+    });
+    var otherOpt = document.createElement('option');
+    otherOpt.value = '__OTHER__';
+    otherOpt.textContent = 'อื่นๆ (ระบุเอง)';
+    selectEl.appendChild(otherOpt);
+
+    selectEl.addEventListener('change', function () {
+      var isOther = selectEl.value === '__OTHER__';
+      otherInputEl.classList.toggle('hidden', !isOther);
+      if (isOther) otherInputEl.focus();
+    });
+  }
+
+  function getSelectOtherValue(selectEl, otherInputEl) {
+    if (selectEl.value === '__OTHER__') return otherInputEl.value.trim();
+    return selectEl.value;
+  }
+
+  function resetSelectOther(selectEl, otherInputEl) {
+    selectEl.value = '';
+    otherInputEl.value = '';
+    otherInputEl.classList.add('hidden');
+  }
+
+  // ============ DROPDOWN LISTS ============
+  google.script.run.withSuccessHandler(function (lists) {
+    populateSelectOther(document.getElementById('s1-lab'), lists['ห้องปฏิบัติการพยาธิฯ'], document.getElementById('s1-lab-other'));
+    populateSelectOther(document.getElementById('s1-dept'), lists['หน่วยงานที่ขอ'], document.getElementById('s1-dept-other'));
+    populateSelectOther(document.getElementById('s1-recorder'), lists['ผู้บันทึก'], document.getElementById('s1-recorder-other'));
+    populateSelectOther(document.getElementById('s3-recorder'), lists['ผู้บันทึก'], document.getElementById('s3-recorder-other'));
+  }).getDropdownLists();
+
+  // ============ STEP 1 ============
+  document.getElementById('s1-submit').addEventListener('click', function () {
+    var payload = {
+      requestDept: getSelectOtherValue(document.getElementById('s1-dept'), document.getElementById('s1-dept-other')),
+      pathLab: getSelectOtherValue(document.getElementById('s1-lab'), document.getElementById('s1-lab-other')),
+      recorderStep1: getSelectOtherValue(document.getElementById('s1-recorder'), document.getElementById('s1-recorder-other')),
+      patientName: document.getElementById('s1-name').value.trim(),
+      hn: document.getElementById('s1-hn').value.trim(),
+      specimenList: document.getElementById('s1-specimen').value.trim(),
+      purpose: document.getElementById('s1-purpose').value.trim(),
+      notes: document.getElementById('s1-notes').value.trim()
+    };
+    if (!payload.pathLab || !payload.recorderStep1 || !payload.patientName || !payload.hn || !payload.specimenList) {
+      showToast('กรุณากรอกข้อมูลที่จำเป็น (*) ให้ครบ', true);
+      return;
+    }
+    var btn = document.getElementById('s1-submit');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; btn.textContent = 'บันทึกคำขอ';
+        showToast('บันทึกคำขอเรียบร้อย — รหัส ' + res.recordId);
+        document.getElementById('s1-clear').click();
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'บันทึกคำขอ';
+        showToast(err.message || 'เกิดข้อผิดพลาด', true);
+      })
+      .submitStep1(payload);
+  });
+
+  document.getElementById('s1-clear').addEventListener('click', function () {
+    ['s1-name', 's1-hn', 's1-specimen', 's1-purpose', 's1-notes'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    resetSelectOther(document.getElementById('s1-lab'), document.getElementById('s1-lab-other'));
+    resetSelectOther(document.getElementById('s1-dept'), document.getElementById('s1-dept-other'));
+    resetSelectOther(document.getElementById('s1-recorder'), document.getElementById('s1-recorder-other'));
+  });
+
+  // ============ STEP 2 ============
+  var s2Selected = null;
+
+  document.getElementById('s2-searchBtn').addEventListener('click', runStep2Search);
+  document.getElementById('s2-search').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') runStep2Search();
+  });
+
+  function runStep2Search() {
+    var kw = document.getElementById('s2-search').value;
+    var list = document.getElementById('s2-results');
+    list.innerHTML = '<div class="empty-state">กำลังค้นหา...</div>';
+    google.script.run
+      .withSuccessHandler(function (records) {
+        renderResults(list, records, function (rec) { selectStep2(rec); });
+      })
+      .withFailureHandler(function (err) { showToast(err.message, true); })
+      .searchRecords('step2', kw);
+  }
+
+  function selectStep2(rec) {
+    s2Selected = rec;
+    document.getElementById('s2-form').classList.remove('hidden');
+    document.getElementById('s2-selectedBadge').textContent =
+      rec.recordId + ' — ' + rec.patientName + ' (HN ' + rec.hn + ')';
+    document.getElementById('s2-date').value = todayDisplay();
+    document.getElementById('s2-receiver').value = '';
+    document.getElementById('s2-action').value = '';
+    document.getElementById('s2-notes').value = '';
+  }
+
+  document.getElementById('s2-cancel').addEventListener('click', function () {
+    s2Selected = null;
+    document.getElementById('s2-form').classList.add('hidden');
+  });
+
+  document.getElementById('s2-submit').addEventListener('click', function () {
+    if (!s2Selected) return;
+    var receiver = document.getElementById('s2-receiver').value.trim();
+    if (!receiver) { showToast('กรุณากรอกชื่อผู้รับตัวอย่าง', true); return; }
+
+    var payload = {
+      receiver: receiver,
+      actionTaken: document.getElementById('s2-action').value.trim(),
+      notes: document.getElementById('s2-notes').value.trim()
+    };
+    var btn = document.getElementById('s2-submit');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.textContent = 'บันทึกการรับตัวอย่าง';
+        showToast('บันทึกการรับตัวอย่างเรียบร้อย');
+        document.getElementById('s2-cancel').click();
+        runStep2Search();
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'บันทึกการรับตัวอย่าง';
+        showToast(err.message, true);
+      })
+      .submitStep2(s2Selected.recordId, payload);
+  });
+
+  // ============ STEP 3 ============
+  var s3Selected = null;
+
+  document.getElementById('s3-searchBtn').addEventListener('click', runStep3Search);
+  document.getElementById('s3-search').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') runStep3Search();
+  });
+
+  function runStep3Search() {
+    var kw = document.getElementById('s3-search').value;
+    var list = document.getElementById('s3-results');
+    list.innerHTML = '<div class="empty-state">กำลังค้นหา...</div>';
+    google.script.run
+      .withSuccessHandler(function (records) {
+        renderResults(list, records, function (rec) { selectStep3(rec); });
+      })
+      .withFailureHandler(function (err) { showToast(err.message, true); })
+      .searchRecords('step3', kw);
+  }
+
+  function selectStep3(rec) {
+    s3Selected = rec;
+    document.getElementById('s3-form').classList.remove('hidden');
+    document.getElementById('s3-selectedBadge').textContent =
+      rec.recordId + ' — ' + rec.patientName + ' (HN ' + rec.hn + ')';
+    document.getElementById('s3-pickup').value = '';
+    document.getElementById('s3-date').value = todayDisplay();
+    resetSelectOther(document.getElementById('s3-recorder'), document.getElementById('s3-recorder-other'));
+    document.getElementById('s3-notes').value = '';
+    clearSignature();
+    setTimeout(initSignaturePad, 50); // ensure canvas is visible before sizing
+  }
+
+  document.getElementById('s3-cancel').addEventListener('click', function () {
+    s3Selected = null;
+    document.getElementById('s3-form').classList.add('hidden');
+  });
+
+  document.getElementById('s3-submit').addEventListener('click', function () {
+    if (!s3Selected) return;
+    var pickup = document.getElementById('s3-pickup').value.trim();
+    var recorderStep3 = getSelectOtherValue(document.getElementById('s3-recorder'), document.getElementById('s3-recorder-other'));
+    if (!pickup) { showToast('กรุณากรอกชื่อผู้มารับตัวอย่าง', true); return; }
+    if (!recorderStep3) { showToast('กรุณาเลือกผู้บันทึก', true); return; }
+    if (isSignatureEmpty()) { showToast('กรุณาลงลายเซ็นก่อนบันทึก', true); return; }
+
+    var payload = {
+      pickupPerson: pickup,
+      recorderStep3: recorderStep3,
+      signature: sigCanvas.toDataURL('image/png'),
+      notes: document.getElementById('s3-notes').value.trim()
+    };
+    var btn = document.getElementById('s3-submit');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.textContent = 'บันทึกการจำหน่ายออก';
+        showToast('บันทึกการจำหน่ายออกเรียบร้อย');
+        document.getElementById('s3-cancel').click();
+        runStep3Search();
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'บันทึกการจำหน่ายออก';
+        showToast(err.message, true);
+      })
+      .submitStep3(s3Selected.recordId, payload);
+  });
+
+  // ---- shared result renderer ----
+  function renderResults(container, records, onSelect) {
+    if (!records || records.length === 0) {
+      container.innerHTML = '<div class="empty-state">ไม่พบรายการที่ตรงเงื่อนไข</div>';
+      return;
+    }
+    container.innerHTML = '';
+    records.forEach(function (rec) {
+      var item = document.createElement('div');
+      item.className = 'result-item';
+      item.innerHTML =
+        '<div><div class="result-main">' + rec.patientName + ' — HN ' + rec.hn + '</div>' +
+        '<div class="result-sub">' + rec.recordId + ' · ' + rec.pathLab + ' · ยื่นคำขอ ' + rec.requestDate + '</div></div>' +
+        '<div class="record-badge">' + rec.recordId + '</div>';
+      item.addEventListener('click', function () {
+        container.querySelectorAll('.result-item').forEach(function (el) { el.classList.remove('selected'); });
+        item.classList.add('selected');
+        onSelect(rec);
+      });
+      container.appendChild(item);
+    });
+  }
+
+  // ============ SIGNATURE PAD ============
+  var sigCanvas = document.getElementById('sigCanvas');
+  var sigCtx = sigCanvas.getContext('2d');
+  var sigDrawing = false;
+  var sigHasContent = false;
+
+  function initSignaturePad() {
+    var ratio = window.devicePixelRatio || 1;
+    var rect = sigCanvas.getBoundingClientRect();
+    sigCanvas.width = rect.width * ratio;
+    sigCanvas.height = rect.height * ratio;
+    sigCtx.scale(ratio, ratio);
+    sigCtx.lineWidth = 2;
+    sigCtx.lineCap = 'round';
+    sigCtx.strokeStyle = '#16241F';
+  }
+
+  function getPos(evt) {
+    var rect = sigCanvas.getBoundingClientRect();
+    var point = evt.touches ? evt.touches[0] : evt;
+    return { x: point.clientX - rect.left, y: point.clientY - rect.top };
+  }
+
+  function startDraw(evt) {
+    evt.preventDefault();
+    sigDrawing = true;
+    var pos = getPos(evt);
+    sigCtx.beginPath();
+    sigCtx.moveTo(pos.x, pos.y);
+  }
+
+  function draw(evt) {
+    if (!sigDrawing) return;
+    evt.preventDefault();
+    var pos = getPos(evt);
+    sigCtx.lineTo(pos.x, pos.y);
+    sigCtx.stroke();
+    sigHasContent = true;
+  }
+
+  function endDraw() { sigDrawing = false; }
+
+  sigCanvas.addEventListener('mousedown', startDraw);
+  sigCanvas.addEventListener('mousemove', draw);
+  window.addEventListener('mouseup', endDraw);
+  sigCanvas.addEventListener('touchstart', startDraw, { passive: false });
+  sigCanvas.addEventListener('touchmove', draw, { passive: false });
+  sigCanvas.addEventListener('touchend', endDraw);
+
+  function clearSignature() {
+    sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    sigHasContent = false;
+  }
+  function isSignatureEmpty() { return !sigHasContent; }
+
+  document.getElementById('s3-clearSig').addEventListener('click', clearSignature);
+  window.addEventListener('resize', function () {
+    if (!document.getElementById('page-step3').classList.contains('hidden')) initSignaturePad();
+  });
+
+  // ============ DASHBOARD ============
+  function loadDashboard() {
+    var filter = {
+      keyword: document.getElementById('d-keyword').value.trim(),
+      status: document.getElementById('d-status').value,
+      dateFrom: document.getElementById('d-from').value,
+      dateTo: document.getElementById('d-to').value
+    };
+    google.script.run
+      .withSuccessHandler(renderDashboard)
+      .withFailureHandler(function (err) { showToast(err.message, true); })
+      .getDashboardData(filter);
+  }
+
+  function renderDashboard(data) {
+    document.getElementById('d-total').textContent = data.summary.total;
+    document.getElementById('d-pending').textContent = data.summary.pending;
+    document.getElementById('d-received').textContent = data.summary.received;
+    document.getElementById('d-dispensed').textContent = data.summary.dispensed;
+
+    var tbody = document.getElementById('d-tbody');
+    var empty = document.getElementById('d-empty');
+    tbody.innerHTML = '';
+
+    if (!data.records || data.records.length === 0) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    data.records.forEach(function (rec) {
+      var tr = document.createElement('tr');
+      var pillClass = rec.status === 'จำหน่ายแล้ว' ? 'pill-dispensed'
+        : rec.status === 'รับตัวอย่างแล้ว' ? 'pill-received' : 'pill-pending';
+      tr.innerHTML =
+        '<td>' + rec.recordId + '</td>' +
+        '<td>' + rec.requestDate + '</td>' +
+        '<td>' + (rec.requestDept || '-') + '</td>' +
+        '<td>' + rec.pathLab + '</td>' +
+        '<td>' + rec.patientName + '</td>' +
+        '<td>' + rec.hn + '</td>' +
+        '<td><span class="pill ' + pillClass + '">' + rec.status + '</span></td>' +
+        '<td>' + rec.lastUpdate + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('d-filterBtn').addEventListener('click', loadDashboard);
+</script>
