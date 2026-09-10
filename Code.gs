@@ -38,7 +38,8 @@ var COL = {
   LAST_UPDATE: 17,
   // เพิ่มต่อท้าย (ไม่แทรกกลาง) เพื่อไม่กระทบข้อมูลเดิมที่บันทึกไว้แล้ว
   RECORDER_STEP1: 18,
-  RECORDER_STEP3: 19
+  RECORDER_STEP3: 19,
+  RECEIVE_LOCATION: 20
 };
 
 var HEADERS = [
@@ -46,7 +47,7 @@ var HEADERS = [
   'ชื่อ-สกุลผู้ป่วย', 'HN', 'รายการตัวอย่าง', 'เพื่อนำส่ง', 'สถานะ',
   'วันที่รับตัวอย่าง', 'ผู้รับตัวอย่าง', 'การดำเนินการ',
   'ผู้มารับตัวอย่าง', 'ลายเซ็น', 'วันที่จำหน่ายออก', 'หมายเหตุ', 'อัปเดตล่าสุด',
-  'ผู้บันทึกคำขอ', 'ผู้บันทึกการจำหน่าย'
+  'ผู้บันทึกคำขอ', 'ผู้บันทึกการจำหน่าย', 'สถานที่รับ'
 ];
 
 var STATUS = {
@@ -54,6 +55,17 @@ var STATUS = {
   RECEIVED: 'รับตัวอย่างแล้ว',
   DISPENSED: 'จำหน่ายแล้ว'
 };
+
+// คอลัมน์ใน sheet "dropdownlist" พร้อมตัวอย่างค่าเริ่มต้น
+// เพิ่มรายการที่นี่ถ้าต้องการ dropdown ใหม่ แล้ว Run setupSheets ซ้ำเพื่อสร้างคอลัมน์ให้
+var DROPDOWN_COLUMNS = [
+  { name: 'ห้องปฏิบัติการพยาธิฯ', samples: ['พยาธิวิทยากายวิภาค', 'พยาธิวิทยาคลินิก', 'นิติเวช'] },
+  { name: 'หน่วยงานที่ขอ', samples: ['หอผู้ป่วยศัลยกรรม', 'ห้องฉุกเฉิน'] },
+  { name: 'ผู้บันทึก', samples: ['เจ้าหน้าที่ A', 'เจ้าหน้าที่ B'] },
+  { name: 'เพื่อนำส่ง', samples: ['ส่งตรวจเพิ่มเติม', 'ขอความเห็นที่สอง', 'ใช้เพื่อการวิจัย'] },
+  { name: 'ผู้รับตัวอย่าง', samples: ['เจ้าหน้าที่ A', 'เจ้าหน้าที่ B'] },
+  { name: 'สถานที่รับ', samples: ['ห้องปฏิบัติการพยาธิวิทยากายวิภาค', 'ห้องปฏิบัติการพยาธิวิทยาคลินิก'] }
+];
 
 // ---------- WEB APP ENTRY ----------
 function doGet(e) {
@@ -88,25 +100,50 @@ function setupSheets() {
     }
   }
 
-  var dd = ss.getSheetByName(CONFIG.DROPDOWN_SHEET) || ss.insertSheet(CONFIG.DROPDOWN_SHEET);
-  if (dd.getLastRow() === 0) {
-    dd.appendRow(['ห้องปฏิบัติการพยาธิฯ', 'หน่วยงานที่ขอ', 'ผู้บันทึก']);
-    dd.appendRow(['พยาธิวิทยากายวิภาค', 'หอผู้ป่วยศัลยกรรม', 'เจ้าหน้าที่ A']);
-    dd.appendRow(['พยาธิวิทยาคลินิก', 'ห้องฉุกเฉิน', 'เจ้าหน้าที่ B']);
-    dd.appendRow(['นิติเวช', '', '']);
-    dd.getRange(1, 1, 1, 3).setFontWeight('bold');
-  } else {
-    // migration: ถ้าเป็นชีตที่สร้างไว้ก่อนหน้านี้และยังไม่มีคอลัมน์ "ผู้บันทึก" ให้เพิ่มต่อท้าย
-    var ddHeaders = dd.getRange(1, 1, 1, dd.getLastColumn()).getValues()[0];
-    if (ddHeaders.indexOf('ผู้บันทึก') === -1) {
-      var newCol = dd.getLastColumn() + 1;
-      dd.getRange(1, newCol).setValue('ผู้บันทึก').setFontWeight('bold');
-      dd.getRange(2, newCol, 2, 1).setValues([['เจ้าหน้าที่ A'], ['เจ้าหน้าที่ B']]);
-    }
-  }
+  ensureDropdownColumns_(ss.getSheetByName(CONFIG.DROPDOWN_SHEET) || ss.insertSheet(CONFIG.DROPDOWN_SHEET));
 
   if (!ss.getSheetByName(CONFIG.REPORT_SHEET)) {
     ss.insertSheet(CONFIG.REPORT_SHEET);
+  }
+}
+
+// เติมคอลัมน์ dropdown ที่ยังไม่มีต่อท้าย โดยไม่แตะคอลัมน์/ตัวเลือกที่ผู้ใช้แก้ไว้แล้ว
+function ensureDropdownColumns_(dd) {
+  var lastCol = dd.getLastColumn();
+  var existing = lastCol > 0 ? dd.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+
+  DROPDOWN_COLUMNS.forEach(function (col) {
+    if (existing.indexOf(col.name) !== -1) return;
+    var target = dd.getLastColumn() + 1;
+    dd.getRange(1, target).setValue(col.name).setFontWeight('bold');
+    dd.getRange(2, target, col.samples.length, 1).setValues(col.samples.map(function (v) {
+      return [v];
+    }));
+  });
+}
+
+// ---------- DEBUG (ชั่วคราว) ----------
+// รันฟังก์ชันนี้จาก Apps Script editor โดยตรง (เลือกจาก dropdown ด้านบน > Run)
+// แล้วดูผลลัพธ์ที่ View > Logs (หรือ Ctrl+Enter) เพื่อตรวจว่าโค้ดอ่านชีตถูกต้องหรือไม่
+function debugCheckData() {
+  var ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+  Logger.log('Spreadsheet name: ' + ss.getName());
+  Logger.log('Spreadsheet URL: ' + ss.getUrl());
+
+  var sheet = ss.getSheetByName(CONFIG.DATA_SHEET);
+  if (!sheet) {
+    Logger.log('!! ไม่พบชีตชื่อ "' + CONFIG.DATA_SHEET + '" ในสเปรดชีตนี้');
+    return;
+  }
+
+  Logger.log('lastRow: ' + sheet.getLastRow() + ', lastColumn: ' + sheet.getLastColumn());
+  Logger.log('แถวที่ 1 (ที่โค้ดถือว่าเป็นหัวตาราง): ' + JSON.stringify(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]));
+
+  if (sheet.getLastRow() >= 2) {
+    Logger.log('แถวที่ 2 (ที่โค้ดถือว่าเป็นข้อมูลจริงแถวแรก): ' + JSON.stringify(sheet.getRange(2, 1, 1, sheet.getLastColumn()).getValues()[0]));
+    Logger.log('ค่าคอลัมน์สถานะ (COL.STATUS = ' + COL.STATUS + ') ของแถวที่ 2: "' + sheet.getRange(2, COL.STATUS).getValue() + '"');
+  } else {
+    Logger.log('!! lastRow < 2 แปลว่าโค้ดมองว่าไม่มีข้อมูลเลย (มีแค่แถวเดียวหรือว่างเปล่า)');
   }
 }
 
@@ -137,10 +174,14 @@ function getDataSheet_() {
   return SpreadsheetApp.openById(CONFIG.SHEET_ID).getSheetByName(CONFIG.DATA_SHEET);
 }
 
-function formatDate_(date) {
-  if (!date) return '';
-  if (typeof date === 'string') return date;
-  return Utilities.formatDate(date, CONFIG.TIMEZONE, 'dd/MM/yyyy HH:mm');
+// รองรับค่าจากชีตได้ทุกชนิด (Date / ข้อความ / ตัวเลข / ว่าง) โดยไม่ throw
+// เซลล์วันที่ที่พิมพ์มือหรือผิดรูปแบบเพียงเซลล์เดียว เคยทำให้ Dashboard ทั้งหน้าพัง
+function formatDate_(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, CONFIG.TIMEZONE, 'dd/MM/yyyy HH:mm');
+  }
+  return String(value);
 }
 
 function todayStamp_() {
@@ -198,7 +239,8 @@ function rowToRecord_(row) {
     notes: row[COL.NOTES - 1],
     lastUpdate: formatDate_(row[COL.LAST_UPDATE - 1]),
     recorderStep1: row[COL.RECORDER_STEP1 - 1],
-    recorderStep3: row[COL.RECORDER_STEP3 - 1]
+    recorderStep3: row[COL.RECORDER_STEP3 - 1],
+    receiveLocation: row[COL.RECEIVE_LOCATION - 1]
   };
 }
 
@@ -266,6 +308,7 @@ function submitStep2(recordId, payload) {
   var now = new Date();
   sheet.getRange(rowIdx, COL.RECEIVE_DATE).setValue(now);
   sheet.getRange(rowIdx, COL.RECEIVER).setValue(payload.receiver || '');
+  sheet.getRange(rowIdx, COL.RECEIVE_LOCATION).setValue(payload.receiveLocation || '');
   sheet.getRange(rowIdx, COL.ACTION_TAKEN).setValue(payload.actionTaken || '');
   sheet.getRange(rowIdx, COL.STATUS).setValue(STATUS.RECEIVED);
   sheet.getRange(rowIdx, COL.LAST_UPDATE).setValue(now);
@@ -358,7 +401,53 @@ function getDashboardData(filter) {
     records.push(rowToRecord_(row));
   });
 
-  records.sort(function (a, b) { return b.recordId.localeCompare(a.recordId); });
+  records.sort(function (a, b) {
+    return String(b.recordId).localeCompare(String(a.recordId));
+  });
 
   return { summary: summary, records: records };
+}
+
+// ---------- EDIT ----------
+// แก้ไขข้อมูลคำขอ (ฟิลด์ของขั้นตอนที่ 1) จาก Dashboard ได้โดยไม่ต้องยุ่งกับสถานะ/ขั้นตอนถัดไป
+function updateRecordFields(recordId, payload) {
+  if (!payload.patientName || !payload.hn || !payload.pathLab || !payload.recorderStep1) {
+    throw new Error('กรุณากรอกข้อมูลที่จำเป็น (*) ให้ครบ');
+  }
+  var sheet = getDataSheet_();
+  var rowIdx = findRowByRecordId_(sheet, recordId);
+  if (rowIdx === -1) throw new Error('ไม่พบรายการที่เลือก (RecordID: ' + recordId + ')');
+
+  sheet.getRange(rowIdx, COL.REQUEST_DEPT).setValue(payload.requestDept || '');
+  sheet.getRange(rowIdx, COL.PATH_LAB).setValue(payload.pathLab);
+  sheet.getRange(rowIdx, COL.PATIENT_NAME).setValue(payload.patientName);
+  sheet.getRange(rowIdx, COL.HN).setValue(payload.hn);
+  sheet.getRange(rowIdx, COL.SPECIMEN_LIST).setValue(payload.specimenList || '');
+  sheet.getRange(rowIdx, COL.PURPOSE).setValue(payload.purpose || '');
+  sheet.getRange(rowIdx, COL.RECORDER_STEP1).setValue(payload.recorderStep1);
+  sheet.getRange(rowIdx, COL.NOTES).setValue(payload.notes || '');
+  sheet.getRange(rowIdx, COL.LAST_UPDATE).setValue(new Date());
+  return { ok: true };
+}
+
+// ---------- REVERT ----------
+// ย้อนสถานะจาก "จำหน่ายแล้ว" กลับเป็น "รับตัวอย่างแล้ว" เผื่อบันทึกขั้นตอน 3 ผิดพลาด
+// ล้างข้อมูลเฉพาะของขั้นตอน 3 ทิ้ง เพื่อให้กลับไปทำขั้นตอน 3 ใหม่ได้สะอาด
+function revertFromDispensed(recordId) {
+  var sheet = getDataSheet_();
+  var rowIdx = findRowByRecordId_(sheet, recordId);
+  if (rowIdx === -1) throw new Error('ไม่พบรายการที่เลือก (RecordID: ' + recordId + ')');
+
+  var currentStatus = sheet.getRange(rowIdx, COL.STATUS).getValue();
+  if (currentStatus !== STATUS.DISPENSED) {
+    throw new Error('รายการนี้ไม่ได้อยู่ในสถานะ "จำหน่ายแล้ว"');
+  }
+
+  sheet.getRange(rowIdx, COL.STATUS).setValue(STATUS.RECEIVED);
+  sheet.getRange(rowIdx, COL.PICKUP_PERSON).setValue('');
+  sheet.getRange(rowIdx, COL.SIGNATURE).setValue('');
+  sheet.getRange(rowIdx, COL.DISPENSE_DATE).setValue('');
+  sheet.getRange(rowIdx, COL.RECORDER_STEP3).setValue('');
+  sheet.getRange(rowIdx, COL.LAST_UPDATE).setValue(new Date());
+  return { ok: true };
 }
