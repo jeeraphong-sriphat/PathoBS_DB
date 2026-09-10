@@ -57,12 +57,40 @@
     otherInputEl.classList.add('hidden');
   }
 
+  // ตั้งค่า select ให้ตรงกับ value ที่มีอยู่แล้ว (จากข้อมูลเดิม) — ถ้าไม่มีใน list ให้ใช้ "อื่นๆ" แทน
+  function setSelectOrOther(selectEl, otherInputEl, value) {
+    var matched = false;
+    for (var i = 0; i < selectEl.options.length; i++) {
+      if (selectEl.options[i].value === value) { matched = true; break; }
+    }
+    if (matched) {
+      selectEl.value = value;
+      otherInputEl.value = '';
+      otherInputEl.classList.add('hidden');
+    } else if (value) {
+      selectEl.value = '__OTHER__';
+      otherInputEl.value = value;
+      otherInputEl.classList.remove('hidden');
+    } else {
+      selectEl.value = '';
+      otherInputEl.value = '';
+      otherInputEl.classList.add('hidden');
+    }
+  }
+
   // ============ DROPDOWN LISTS ============
   google.script.run.withSuccessHandler(function (lists) {
     populateSelectOther(document.getElementById('s1-lab'), lists['ห้องปฏิบัติการพยาธิฯ'], document.getElementById('s1-lab-other'));
     populateSelectOther(document.getElementById('s1-dept'), lists['หน่วยงานที่ขอ'], document.getElementById('s1-dept-other'));
     populateSelectOther(document.getElementById('s1-recorder'), lists['ผู้บันทึก'], document.getElementById('s1-recorder-other'));
+    populateSelectOther(document.getElementById('s1-purpose'), lists['เพื่อนำส่ง'], document.getElementById('s1-purpose-other'));
+    populateSelectOther(document.getElementById('s2-receiver'), lists['ผู้รับตัวอย่าง'], document.getElementById('s2-receiver-other'));
+    populateSelectOther(document.getElementById('s2-location'), lists['สถานที่รับ'], document.getElementById('s2-location-other'));
     populateSelectOther(document.getElementById('s3-recorder'), lists['ผู้บันทึก'], document.getElementById('s3-recorder-other'));
+    populateSelectOther(document.getElementById('edit-dept'), lists['หน่วยงานที่ขอ'], document.getElementById('edit-dept-other'));
+    populateSelectOther(document.getElementById('edit-lab'), lists['ห้องปฏิบัติการพยาธิฯ'], document.getElementById('edit-lab-other'));
+    populateSelectOther(document.getElementById('edit-recorder'), lists['ผู้บันทึก'], document.getElementById('edit-recorder-other'));
+    populateSelectOther(document.getElementById('edit-purpose'), lists['เพื่อนำส่ง'], document.getElementById('edit-purpose-other'));
   }).getDropdownLists();
 
   // ============ STEP 1 ============
@@ -74,7 +102,7 @@
       patientName: document.getElementById('s1-name').value.trim(),
       hn: document.getElementById('s1-hn').value.trim(),
       specimenList: document.getElementById('s1-specimen').value.trim(),
-      purpose: document.getElementById('s1-purpose').value.trim(),
+      purpose: getSelectOtherValue(document.getElementById('s1-purpose'), document.getElementById('s1-purpose-other')),
       notes: document.getElementById('s1-notes').value.trim()
     };
     if (!payload.pathLab || !payload.recorderStep1 || !payload.patientName || !payload.hn || !payload.specimenList) {
@@ -98,12 +126,13 @@
   });
 
   document.getElementById('s1-clear').addEventListener('click', function () {
-    ['s1-name', 's1-hn', 's1-specimen', 's1-purpose', 's1-notes'].forEach(function (id) {
+    ['s1-name', 's1-hn', 's1-specimen', 's1-notes'].forEach(function (id) {
       document.getElementById(id).value = '';
     });
     resetSelectOther(document.getElementById('s1-lab'), document.getElementById('s1-lab-other'));
     resetSelectOther(document.getElementById('s1-dept'), document.getElementById('s1-dept-other'));
     resetSelectOther(document.getElementById('s1-recorder'), document.getElementById('s1-recorder-other'));
+    resetSelectOther(document.getElementById('s1-purpose'), document.getElementById('s1-purpose-other'));
   });
 
   // ============ STEP 2 ============
@@ -132,7 +161,8 @@
     document.getElementById('s2-selectedBadge').textContent =
       rec.recordId + ' — ' + rec.patientName + ' (HN ' + rec.hn + ')';
     document.getElementById('s2-date').value = todayDisplay();
-    document.getElementById('s2-receiver').value = '';
+    resetSelectOther(document.getElementById('s2-receiver'), document.getElementById('s2-receiver-other'));
+    resetSelectOther(document.getElementById('s2-location'), document.getElementById('s2-location-other'));
     document.getElementById('s2-action').value = '';
     document.getElementById('s2-notes').value = '';
   }
@@ -144,11 +174,12 @@
 
   document.getElementById('s2-submit').addEventListener('click', function () {
     if (!s2Selected) return;
-    var receiver = document.getElementById('s2-receiver').value.trim();
-    if (!receiver) { showToast('กรุณากรอกชื่อผู้รับตัวอย่าง', true); return; }
+    var receiver = getSelectOtherValue(document.getElementById('s2-receiver'), document.getElementById('s2-receiver-other'));
+    if (!receiver) { showToast('กรุณาเลือกผู้รับตัวอย่าง', true); return; }
 
     var payload = {
       receiver: receiver,
+      receiveLocation: getSelectOtherValue(document.getElementById('s2-location'), document.getElementById('s2-location-other')),
       actionTaken: document.getElementById('s2-action').value.trim(),
       notes: document.getElementById('s2-notes').value.trim()
     };
@@ -351,22 +382,118 @@
     }
     empty.classList.add('hidden');
 
+    dashboardRecordsById = {};
     data.records.forEach(function (rec) {
+      dashboardRecordsById[rec.recordId] = rec;
+
       var tr = document.createElement('tr');
       var pillClass = rec.status === 'จำหน่ายแล้ว' ? 'pill-dispensed'
         : rec.status === 'รับตัวอย่างแล้ว' ? 'pill-received' : 'pill-pending';
+
+      var actionsHtml = '<button type="button" class="btn-icon btn-edit" data-id="' + rec.recordId + '">แก้ไข</button>';
+      if (rec.status === 'จำหน่ายแล้ว') {
+        actionsHtml += '<button type="button" class="btn-icon btn-revert" data-id="' + rec.recordId + '">ย้อนกลับ</button>';
+      }
+
       tr.innerHTML =
-        '<td>' + rec.recordId + '</td>' +
         '<td>' + rec.requestDate + '</td>' +
         '<td>' + (rec.requestDept || '-') + '</td>' +
         '<td>' + rec.pathLab + '</td>' +
         '<td>' + rec.patientName + '</td>' +
         '<td>' + rec.hn + '</td>' +
+        '<td>' + (rec.purpose || '-') + '</td>' +
         '<td><span class="pill ' + pillClass + '">' + rec.status + '</span></td>' +
-        '<td>' + rec.lastUpdate + '</td>';
+        '<td>' + rec.lastUpdate + '</td>' +
+        '<td class="actions-cell">' + actionsHtml + '</td>';
       tbody.appendChild(tr);
     });
   }
 
   document.getElementById('d-filterBtn').addEventListener('click', loadDashboard);
+
+  // ============ EDIT / REVERT (Dashboard) ============
+  var dashboardRecordsById = {};
+  var editSelected = null;
+
+  document.getElementById('d-tbody').addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.btn-edit');
+    var revertBtn = e.target.closest('.btn-revert');
+
+    if (editBtn) {
+      var rec = dashboardRecordsById[editBtn.getAttribute('data-id')];
+      if (rec) openEditModal(rec);
+    } else if (revertBtn) {
+      var recordId = revertBtn.getAttribute('data-id');
+      if (confirm('ย้อนสถานะรายการนี้กลับเป็น "รับตัวอย่างแล้ว" ใช่หรือไม่?\nข้อมูลผู้มารับ/ลายเซ็นของขั้นตอนที่ 3 จะถูกล้างทิ้ง')) {
+        revertBtn.disabled = true;
+        google.script.run
+          .withSuccessHandler(function () {
+            showToast('ย้อนสถานะเรียบร้อย');
+            loadDashboard();
+          })
+          .withFailureHandler(function (err) {
+            revertBtn.disabled = false;
+            showToast(err.message, true);
+          })
+          .revertFromDispensed(recordId);
+      }
+    }
+  });
+
+  function openEditModal(rec) {
+    editSelected = rec;
+    document.getElementById('edit-badge').textContent = rec.recordId + ' — ' + rec.patientName + ' (HN ' + rec.hn + ')';
+    document.getElementById('edit-name').value = rec.patientName || '';
+    document.getElementById('edit-hn').value = rec.hn || '';
+    document.getElementById('edit-specimen').value = rec.specimenList || '';
+    document.getElementById('edit-notes').value = rec.notes || '';
+    setSelectOrOther(document.getElementById('edit-dept'), document.getElementById('edit-dept-other'), rec.requestDept);
+    setSelectOrOther(document.getElementById('edit-lab'), document.getElementById('edit-lab-other'), rec.pathLab);
+    setSelectOrOther(document.getElementById('edit-recorder'), document.getElementById('edit-recorder-other'), rec.recorderStep1);
+    setSelectOrOther(document.getElementById('edit-purpose'), document.getElementById('edit-purpose-other'), rec.purpose);
+    document.getElementById('edit-modal-overlay').classList.remove('hidden');
+  }
+
+  function closeEditModal() {
+    editSelected = null;
+    document.getElementById('edit-modal-overlay').classList.add('hidden');
+  }
+
+  document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
+  document.getElementById('edit-modal-overlay').addEventListener('click', function (e) {
+    if (e.target === document.getElementById('edit-modal-overlay')) closeEditModal();
+  });
+
+  document.getElementById('edit-save').addEventListener('click', function () {
+    if (!editSelected) return;
+    var payload = {
+      requestDept: getSelectOtherValue(document.getElementById('edit-dept'), document.getElementById('edit-dept-other')),
+      pathLab: getSelectOtherValue(document.getElementById('edit-lab'), document.getElementById('edit-lab-other')),
+      recorderStep1: getSelectOtherValue(document.getElementById('edit-recorder'), document.getElementById('edit-recorder-other')),
+      patientName: document.getElementById('edit-name').value.trim(),
+      hn: document.getElementById('edit-hn').value.trim(),
+      specimenList: document.getElementById('edit-specimen').value.trim(),
+      purpose: getSelectOtherValue(document.getElementById('edit-purpose'), document.getElementById('edit-purpose-other')),
+      notes: document.getElementById('edit-notes').value.trim()
+    };
+    if (!payload.pathLab || !payload.recorderStep1 || !payload.patientName || !payload.hn || !payload.specimenList) {
+      showToast('กรุณากรอกข้อมูลที่จำเป็น (*) ให้ครบ', true);
+      return;
+    }
+    var btn = document.getElementById('edit-save');
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.textContent = 'บันทึกการแก้ไข';
+        showToast('แก้ไขข้อมูลเรียบร้อย');
+        closeEditModal();
+        loadDashboard();
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.textContent = 'บันทึกการแก้ไข';
+        showToast(err.message, true);
+      })
+      .updateRecordFields(editSelected.recordId, payload);
+  });
 </script>
