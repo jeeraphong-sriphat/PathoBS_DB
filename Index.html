@@ -64,7 +64,8 @@
             </div>
             <div class="field">
               <label>เพื่อนำส่ง</label>
-              <input type="text" id="s1-purpose" placeholder="เช่น ส่งตรวจเพิ่มเติม รพ. ...">
+              <select id="s1-purpose"><option value="">— เลือก —</option></select>
+              <input type="text" id="s1-purpose-other" class="hidden other-input" placeholder="ระบุวัตถุประสงค์">
             </div>
             <div class="field">
               <label>หมายเหตุ</label>
@@ -100,7 +101,13 @@
             </div>
             <div class="field">
               <label>ผู้รับตัวอย่าง <span class="req">*</span></label>
-              <input type="text" id="s2-receiver" placeholder="ชื่อผู้รับ">
+              <select id="s2-receiver"><option value="">— เลือก —</option></select>
+              <input type="text" id="s2-receiver-other" class="hidden other-input" placeholder="ระบุชื่อผู้รับ">
+            </div>
+            <div class="field">
+              <label>สถานที่รับ</label>
+              <select id="s2-location"><option value="">— เลือก —</option></select>
+              <input type="text" id="s2-location-other" class="hidden other-input" placeholder="ระบุสถานที่รับ">
             </div>
             <div class="field full">
               <label>การดำเนินการ</label>
@@ -199,7 +206,7 @@
             <select id="d-status">
               <option value="ALL">ทุกสถานะ</option>
               <option value="รอรับตัวอย่าง">รอรับตัวอย่าง (คงค้าง)</option>
-              <option value="รับตัวอย่างแล้ว">รับตัวอย่างแล้ว (คงค้าง)</option>
+              <option value="รับตัวอย่างแล้ว">รับตัวอย่างแล้ว (รอจำหน่ายออก)</option>
               <option value="จำหน่ายแล้ว">จำหน่ายแล้ว</option>
             </select>
             <input type="date" id="d-from">
@@ -211,8 +218,8 @@
             <table>
               <thead>
                 <tr>
-                  <th>RecordID</th><th>วันที่บันทึก</th><th>หน่วยงาน</th><th>ห้องปฏิบัติการ</th>
-                  <th>ชื่อ-สกุล</th><th>HN</th><th>สถานะ</th><th>อัปเดตล่าสุด</th>
+                  <th>วันที่บันทึก</th><th>หน่วยงาน</th><th>ห้องปฏิบัติการ</th>
+                  <th>ชื่อ-สกุล</th><th>HN</th><th>เพื่อนำส่ง</th><th>สถานะ</th><th>อัปเดตล่าสุด</th><th>จัดการ</th>
                 </tr>
               </thead>
               <tbody id="d-tbody"></tbody>
@@ -223,6 +230,56 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- ============ EDIT MODAL ============ -->
+  <div class="modal-overlay hidden" id="edit-modal-overlay">
+    <div class="modal">
+      <h2 class="modal-title">แก้ไขข้อมูลคำขอ</h2>
+      <div class="record-badge" id="edit-badge"></div>
+      <div class="field-grid" style="margin-top:14px;">
+        <div class="field">
+          <label>หน่วยงานที่ขอ</label>
+          <select id="edit-dept"><option value="">— เลือก —</option></select>
+          <input type="text" id="edit-dept-other" class="hidden other-input" placeholder="ระบุหน่วยงานที่ขอ">
+        </div>
+        <div class="field">
+          <label>ห้องปฏิบัติการพยาธิฯ <span class="req">*</span></label>
+          <select id="edit-lab"><option value="">— เลือก —</option></select>
+          <input type="text" id="edit-lab-other" class="hidden other-input" placeholder="ระบุห้องปฏิบัติการ">
+        </div>
+        <div class="field">
+          <label>ผู้บันทึก <span class="req">*</span></label>
+          <select id="edit-recorder"><option value="">— เลือก —</option></select>
+          <input type="text" id="edit-recorder-other" class="hidden other-input" placeholder="ระบุชื่อผู้บันทึก">
+        </div>
+        <div class="field">
+          <label>ชื่อ-สกุลผู้ป่วย <span class="req">*</span></label>
+          <input type="text" id="edit-name" placeholder="ชื่อ-นามสกุล">
+        </div>
+        <div class="field">
+          <label>HN <span class="req">*</span></label>
+          <input type="text" id="edit-hn" placeholder="เลข HN">
+        </div>
+        <div class="field full">
+          <label>รายการตัวอย่าง <span class="req">*</span></label>
+          <textarea id="edit-specimen"></textarea>
+        </div>
+        <div class="field">
+          <label>เพื่อนำส่ง</label>
+          <select id="edit-purpose"><option value="">— เลือก —</option></select>
+          <input type="text" id="edit-purpose-other" class="hidden other-input" placeholder="ระบุวัตถุประสงค์">
+        </div>
+        <div class="field">
+          <label>หมายเหตุ</label>
+          <input type="text" id="edit-notes" placeholder="ถ้ามี">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="edit-cancel">ยกเลิก</button>
+        <button class="btn btn-primary" id="edit-save">บันทึกการแก้ไข</button>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
