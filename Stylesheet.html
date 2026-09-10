@@ -1,24 +1,24 @@
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap');
 
   :root {
-    --bg: #F4F6F5;
+    --bg: #EEEBFB;
     --surface: #FFFFFF;
-    --ink: #16241F;
-    --ink-soft: #52645D;
-    --border: #DCE4E0;
-    --primary: #1F6F63;
-    --primary-dark: #164F46;
-    --primary-tint: #E6F0EE;
+    --ink: #2B2650;
+    --ink-soft: #6E6A94;
+    --border: #E1DDF7;
+    --primary: #7C6FEF;
+    --primary-dark: #5E4FE0;
+    --primary-tint: #ECE9FE;
     --amber: #B4740E;
     --amber-tint: #FBF0DC;
     --green: #2E7D5B;
     --green-tint: #E4F3EB;
-    --slate: #5B6B76;
-    --slate-tint: #EAEEF0;
-    --danger: #B3432E;
-    --radius: 10px;
-    --shadow: 0 1px 2px rgba(22, 36, 31, 0.06), 0 4px 12px rgba(22, 36, 31, 0.05);
+    --slate: #6E6A94;
+    --slate-tint: #EFEDFB;
+    --danger: #E0507B;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(43, 38, 80, 0.06), 0 8px 20px rgba(43, 38, 80, 0.08);
   }
 
   * { box-sizing: border-box; }
@@ -28,7 +28,7 @@
     padding: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'Noto Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Mali', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 15px;
     line-height: 1.55;
   }
@@ -274,7 +274,7 @@
     padding: 16px 18px;
   }
   .stat-num { font-size: 26px; font-weight: 700; line-height: 1.1; }
-  .stat-label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  .stat-label { font-size: 10px; color: var(--ink-soft); margin-top: 4px; }
   .stat-card.pending .stat-num { color: var(--amber); }
   .stat-card.received .stat-num { color: var(--slate); }
   .stat-card.dispensed .stat-num { color: var(--green); }
@@ -295,7 +295,7 @@
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
-  th { color: var(--ink-soft); font-weight: 600; font-size: 12.5px; }
+  th { color: var(--ink-soft); font-weight: 600; font-size: 10px; }
   tbody tr:hover { background: var(--bg); }
   .table-wrap { overflow-x: auto; }
 
@@ -308,7 +308,7 @@
     color: #fff;
     padding: 12px 20px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 10px;
     opacity: 0;
     transition: opacity .2s, transform .2s;
     pointer-events: none;
@@ -318,13 +318,52 @@
   .toast.error { background: var(--danger); }
 
   .record-badge {
-    font-size: 12px;
+    font-size: 10px;
     color: var(--primary-dark);
     background: var(--primary-tint);
     padding: 3px 9px;
     border-radius: 6px;
     font-weight: 600;
   }
+
+  /* ---- Table row actions ---- */
+  .actions-cell { display: flex; gap: 6px; white-space: nowrap; }
+  .btn-icon {
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  .btn-edit:hover { border-color: var(--primary); color: var(--primary-dark); background: var(--primary-tint); }
+  .btn-revert:hover { border-color: var(--danger); color: var(--danger); background: #FCE9EF; }
+
+  /* ---- Edit modal ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 38, 80, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 28px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-title { font-size: 19px; font-weight: 700; margin: 0 0 12px; }
 
   .hidden { display: none !important; }
 
